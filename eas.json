@@ -10,13 +10,13 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://blackbox-server-d557.onrender.com"
+        "EXPO_PUBLIC_SERVER_URL": "http://47.131.250.110"
       }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://blackbox-server-d557.onrender.com"
+        "EXPO_PUBLIC_SERVER_URL": "http://47.131.250.110"
       }
     }
   },
