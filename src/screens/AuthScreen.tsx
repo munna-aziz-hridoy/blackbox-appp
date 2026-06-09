@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -82,10 +83,12 @@ export function AuthScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.hero}>
-          <View style={styles.logo}>
-            <Text style={styles.logoMark}>💬</Text>
-          </View>
-          <Text style={styles.title}>Serverless Messenger</Text>
+          <Image
+            source={require('../../assets/black_box_logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Black Box</Text>
           <Text style={styles.tagline}>
             End-to-end encrypted. Your messages never touch our servers.
           </Text>
@@ -169,15 +172,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.xl },
   hero: { alignItems: 'center', marginBottom: spacing.xl * 1.5 },
   logo: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 84,
+    height: 84,
     marginBottom: spacing.lg,
   },
-  logoMark: { fontSize: 44 },
   title: { fontSize: 24, fontWeight: '700', color: colors.text },
   tagline: {
     fontSize: 14,

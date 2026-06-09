@@ -1,19 +1,20 @@
 export const colors = {
-  brandDark: '#075E54',
-  brand: '#128C7E',
-  accent: '#25D366',
-  chatBg: '#ECE5DD',
-  bubbleOut: '#DCF8C6',
+  // Monochrome, premium. Headers/buttons are near-black; surfaces warm off-white.
+  brandDark: '#0B0B0C',
+  brand: '#0B0B0C',
+  accent: '#0B0B0C',
+  chatBg: '#ECECEC',
+  bubbleOut: '#0B0B0C',
   bubbleIn: '#FFFFFF',
   bg: '#FFFFFF',
-  surface: '#F4F6F8',
-  text: '#111827',
-  muted: '#6B7280',
-  faint: '#9CA3AF',
-  border: '#E5E7EB',
-  danger: '#DC2626',
-  tick: '#8696A0',
-  tickRead: '#34B7F1',
+  surface: '#F4F4F5',
+  text: '#0B0B0C',
+  muted: '#6B6B70',
+  faint: '#A1A1A6',
+  border: '#E8E8EA',
+  danger: '#D92D20',
+  tick: '#A1A1A6',
+  tickRead: '#0B0B0C',
   white: '#FFFFFF',
 };
 
@@ -32,16 +33,8 @@ export const spacing = {
   xl: 24,
 };
 
-// Stable per-string color so avatars aren't all the same green.
-const avatarPalette = [
-  '#0a7d62',
-  '#1f6feb',
-  '#b4540a',
-  '#7c3aed',
-  '#be185d',
-  '#0e7490',
-  '#4d7c0f',
-];
+// Monochrome avatar shades so initials read as premium, not colorful.
+const avatarPalette = ['#111113', '#26262B', '#3A3A40', '#1C1C20', '#2F2F35'];
 
 export function avatarColor(seed: string): string {
   let hash = 0;

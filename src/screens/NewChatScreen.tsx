@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '../navigation';
 import { useMessaging } from '../messaging/MessagingContext';
 import { SearchResult, searchUser } from '../api';
@@ -93,7 +94,7 @@ export function NewChatScreen() {
           onPress={handleSearch}
           activeOpacity={0.85}
         >
-          <Text style={styles.searchBtnText}>🔍</Text>
+          <Ionicons name="search" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -106,9 +107,17 @@ export function NewChatScreen() {
           <Avatar label={foundEmail} size={44} />
           <View style={styles.resultBody}>
             <Text style={styles.resultName}>{foundEmail}</Text>
-            <Text style={[styles.presence, result.online && styles.online]}>
-              {result.online ? '● online' : '○ offline'}
-            </Text>
+            <View style={styles.presenceRow}>
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: result.online ? colors.text : colors.faint },
+                ]}
+              />
+              <Text style={styles.presence}>
+                {result.online ? 'online' : 'offline'}
+              </Text>
+            </View>
           </View>
           <View style={styles.addBtn}>
             <PrimaryButton title="Add & chat" onPress={handleAdd} loading={adding} />
@@ -153,11 +162,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchBtnText: { fontSize: 18 },
   muted: { color: colors.faint, marginTop: spacing.md },
   result: {
     flexDirection: 'row',
@@ -171,8 +179,14 @@ const styles = StyleSheet.create({
   resultBody: { flex: 1 },
   resultName: { fontSize: 15, fontWeight: '600', color: colors.text },
   resultEmail: { fontSize: 13, color: colors.muted, marginTop: 1 },
-  presence: { fontSize: 13, color: colors.faint, marginTop: 2 },
-  online: { color: colors.accent },
+  presenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+  },
+  dot: { width: 7, height: 7, borderRadius: 3.5 },
+  presence: { fontSize: 13, color: colors.muted },
   addBtn: { minWidth: 130 },
   heading: {
     fontSize: 13,

@@ -1,12 +1,14 @@
 {
   "expo": {
-    "name": "Serverless Messenger",
+    "name": "Black Box",
     "slug": "serverless-messenger",
     "version": "0.0.1",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,6 +18,10 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
       "permissions": [
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
@@ -25,7 +31,8 @@
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WAKE_LOCK",
         "android.permission.BLUETOOTH"
-      ]
+      ],
+      "package": "com.blackbox.messenger"
     },
     "web": {
       "favicon": "./assets/favicon.png"

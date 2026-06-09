@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useMessaging } from '../messaging/MessagingContext';
 import { getMyProfile, setMyProfile } from '../db';
 import { SERVER_URL } from '../config';
@@ -104,6 +105,7 @@ export function SettingsScreen() {
       </View>
 
       <TouchableOpacity style={styles.logout} onPress={confirmLogout}>
+        <Ionicons name="log-out-outline" size={20} color={colors.danger} />
         <Text style={styles.logoutText}>Log out</Text>
       </TouchableOpacity>
     </View>
@@ -182,6 +184,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.danger,
+    flexDirection: 'row',
+    gap: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },

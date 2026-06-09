@@ -1,4 +1,6 @@
+import { ReactNode } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useCall } from './CallContext';
 import { Avatar } from '../components/Avatar';
 import { colors } from '../theme';
@@ -31,31 +33,31 @@ function statusLabel(state: string, durationSec: number): string {
 }
 
 function RoundButton({
-  glyph,
+  icon,
   label,
   color,
   onPress,
-  active,
 }: {
-  glyph: string;
+  icon: ReactNode;
   label?: string;
   color: string;
   onPress: () => void;
-  active?: boolean;
 }) {
   return (
     <View style={styles.btnWrap}>
       <TouchableOpacity
-        style={[styles.btn, { backgroundColor: color }, active && styles.btnActive]}
+        style={[styles.btn, { backgroundColor: color }]}
         onPress={onPress}
         activeOpacity={0.8}
       >
-        <Text style={styles.btnGlyph}>{glyph}</Text>
+        {icon}
       </TouchableOpacity>
       {label ? <Text style={styles.btnLabel}>{label}</Text> : null}
     </View>
   );
 }
+
+const TRANSLUCENT = 'rgba(255,255,255,0.14)';
 
 export function CallOverlay() {
   const call = useCall();
@@ -77,17 +79,27 @@ export function CallOverlay() {
           {call.state === 'connected' ? (
             <View style={styles.controlRow}>
               <RoundButton
-                glyph={call.muted ? '🔇' : '🎙'}
+                icon={
+                  <Ionicons
+                    name={call.muted ? 'mic-off' : 'mic'}
+                    size={26}
+                    color={call.muted ? colors.text : colors.white}
+                  />
+                }
                 label={call.muted ? 'Unmute' : 'Mute'}
-                color={colors.surface}
-                active={call.muted}
+                color={call.muted ? colors.white : TRANSLUCENT}
                 onPress={call.toggleMute}
               />
               <RoundButton
-                glyph="🔊"
+                icon={
+                  <Ionicons
+                    name="volume-high"
+                    size={26}
+                    color={call.speaker ? colors.text : colors.white}
+                  />
+                }
                 label="Speaker"
-                color={colors.surface}
-                active={call.speaker}
+                color={call.speaker ? colors.white : TRANSLUCENT}
                 onPress={call.toggleSpeaker}
               />
             </View>
@@ -96,20 +108,24 @@ export function CallOverlay() {
           {call.state === 'incoming' ? (
             <View style={styles.controlRow}>
               <RoundButton
-                glyph="✕"
+                icon={<MaterialIcons name="call-end" size={28} color={colors.white} />}
                 label="Decline"
                 color={colors.danger}
                 onPress={call.hangUp}
               />
               <RoundButton
-                glyph="📞"
+                icon={<Ionicons name="call" size={28} color={colors.text} />}
                 label="Accept"
-                color={colors.accent}
+                color={colors.white}
                 onPress={call.acceptCall}
               />
             </View>
           ) : (
-            <RoundButton glyph="📵" color={colors.danger} onPress={call.hangUp} />
+            <RoundButton
+              icon={<MaterialIcons name="call-end" size={28} color={colors.white} />}
+              color={colors.danger}
+              onPress={call.hangUp}
+            />
           )}
         </View>
       </View>
@@ -138,7 +154,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnActive: { opacity: 0.7 },
-  btnGlyph: { fontSize: 28 },
   btnLabel: { color: colors.white, fontSize: 13 },
 });

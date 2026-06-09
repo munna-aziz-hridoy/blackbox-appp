@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { ComponentProps, useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AppStackParamList } from './src/navigation';
 import { colors } from './src/theme';
@@ -32,9 +32,9 @@ const brandHeader = {
   headerTitleStyle: { fontWeight: '600' as const },
 };
 
-function tabIcon(symbol: string) {
-  return ({ color }: { color: string }) => (
-    <Text style={{ fontSize: 18, color }}>{symbol}</Text>
+function tabIcon(name: ComponentProps<typeof Ionicons>['name']) {
+  return ({ color, size }: { color: string; size: number }) => (
+    <Ionicons name={name} size={size} color={color} />
   );
 }
 
@@ -51,14 +51,14 @@ function Tabs() {
         name="Chats"
         component={ChatsListScreen}
         options={{
-          headerTitle: 'Serverless Messenger',
-          tabBarIcon: tabIcon('💬'),
+          headerTitle: 'Black Box',
+          tabBarIcon: tabIcon('chatbubbles'),
         }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ tabBarIcon: tabIcon('⚙️') }}
+        options={{ tabBarIcon: tabIcon('settings-outline') }}
       />
     </Tab.Navigator>
   );

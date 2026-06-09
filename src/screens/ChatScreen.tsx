@@ -11,18 +11,29 @@ import {
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { AppStackParamList } from "../navigation";
 import { useMessaging } from "../messaging/MessagingContext";
 import { useCall } from "../call/CallContext";
 import { getContact, loadMessagesWith, Message } from "../db";
 import { colors, radius, spacing } from "../theme";
 
+const TICK_DIM = "rgba(255,255,255,0.6)";
+
 function Ticks({ status }: { status: Message["status"] }) {
-  if (status === "pending") return <Text style={styles.tick}>🕓</Text>;
-  if (status === "read")
-    return <Text style={[styles.tick, styles.tickRead]}>✓✓</Text>;
-  if (status === "delivered") return <Text style={styles.tick}>✓✓</Text>;
-  return <Text style={styles.tick}>✓</Text>;
+  if (status === "pending") {
+    return (
+      <Ionicons name="time-outline" size={13} color={TICK_DIM} style={styles.tick} />
+    );
+  }
+  return (
+    <Ionicons
+      name={status === "sent" ? "checkmark" : "checkmark-done"}
+      size={14}
+      color={status === "read" ? colors.white : TICK_DIM}
+      style={styles.tick}
+    />
+  );
 }
 
 function clockTime(ms: number): string {
@@ -85,8 +96,9 @@ export function ChatScreen() {
               })
             }
             hitSlop={12}
+            style={styles.callButton}
           >
-            <Text style={styles.callButton}>📞</Text>
+            <Ionicons name="call" size={22} color={colors.white} />
           </TouchableOpacity>
         ) : null,
     });
@@ -140,9 +152,25 @@ export function ChatScreen() {
                 item.direction === "out" ? styles.out : styles.in,
               ]}
             >
-              <Text style={styles.bubbleText}>{item.body}</Text>
+              <Text
+                style={[
+                  styles.bubbleText,
+                  item.direction === "out"
+                    ? styles.bubbleTextOut
+                    : styles.bubbleTextIn,
+                ]}
+              >
+                {item.body}
+              </Text>
               <View style={styles.meta}>
-                <Text style={styles.metaTime}>{clockTime(item.createdAt)}</Text>
+                <Text
+                  style={[
+                    styles.metaTime,
+                    item.direction === "out" && styles.metaTimeOut,
+                  ]}
+                >
+                  {clockTime(item.createdAt)}
+                </Text>
                 {item.direction === "out" ? <Ticks status={item.status} /> : null}
               </View>
             </View>
@@ -172,7 +200,7 @@ export function ChatScreen() {
           activeOpacity={0.85}
           onPress={handleSend}
         >
-          <Text style={styles.sendText}>➤</Text>
+          <Ionicons name="send" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
     </View>
@@ -183,7 +211,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chatBg },
   headerTitle: { color: colors.white, fontSize: 17, fontWeight: "600" },
   headerSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
-  callButton: { fontSize: 20, paddingHorizontal: 4 },
+  callButton: { paddingHorizontal: 4 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyText: { fontSize: 16, color: colors.muted, fontWeight: "600" },
   emptyHint: { fontSize: 14, color: colors.faint, marginTop: spacing.xs },
@@ -204,7 +232,9 @@ const styles = StyleSheet.create({
   },
   out: { alignSelf: "flex-end", backgroundColor: colors.bubbleOut },
   in: { alignSelf: "flex-start", backgroundColor: colors.bubbleIn },
-  bubbleText: { fontSize: 15, color: colors.text },
+  bubbleText: { fontSize: 15 },
+  bubbleTextOut: { color: colors.white },
+  bubbleTextIn: { color: colors.text },
   meta: {
     flexDirection: "row",
     alignSelf: "flex-end",
@@ -213,8 +243,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   metaTime: { fontSize: 10, color: colors.faint },
-  tick: { fontSize: 11, color: colors.tick },
-  tickRead: { color: colors.tickRead },
+  metaTimeOut: { color: "rgba(255,255,255,0.55)" },
+  tick: { marginLeft: 3 },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -240,5 +270,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sendText: { color: colors.white, fontSize: 18 },
 });

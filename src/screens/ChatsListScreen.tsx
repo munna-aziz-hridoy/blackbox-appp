@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '../navigation';
 import { useMessaging } from '../messaging/MessagingContext';
 import { Conversation, loadConversations } from '../db';
@@ -31,14 +32,25 @@ function label(conversation: Conversation): string {
   return displayName(conversation.name, conversation.email, conversation.peerId);
 }
 
-function tickFor(status: Conversation['lastStatus']): {
-  glyph: string;
-  read: boolean;
-} {
-  if (status === 'pending') return { glyph: '🕓 ', read: false };
-  if (status === 'read') return { glyph: '✓✓ ', read: true };
-  if (status === 'delivered') return { glyph: '✓✓ ', read: false };
-  return { glyph: '✓ ', read: false };
+function Tick({ status }: { status: Conversation['lastStatus'] }) {
+  if (status === 'pending') {
+    return (
+      <Ionicons
+        name="time-outline"
+        size={14}
+        color={colors.faint}
+        style={styles.tickIcon}
+      />
+    );
+  }
+  return (
+    <Ionicons
+      name={status === 'sent' ? 'checkmark' : 'checkmark-done'}
+      size={15}
+      color={status === 'read' ? colors.tickRead : colors.faint}
+      style={styles.tickIcon}
+    />
+  );
 }
 
 export function ChatsListScreen() {
@@ -65,7 +77,12 @@ export function ChatsListScreen() {
 
       {conversations.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>💬</Text>
+          <Ionicons
+            name="chatbubbles-outline"
+            size={56}
+            color={colors.faint}
+            style={styles.emptyEmoji}
+          />
           <Text style={styles.emptyText}>No chats yet</Text>
           <Text style={styles.emptyHint}>Tap + to find someone by email.</Text>
         </View>
@@ -97,20 +114,14 @@ export function ChatsListScreen() {
                   </Text>
                 </View>
                 <View style={styles.rowTop}>
-                  <Text style={styles.preview} numberOfLines={1}>
+                  <View style={styles.previewRow}>
                     {item.lastDirection === 'out' ? (
-                      <Text
-                        style={
-                          tickFor(item.lastStatus).read
-                            ? styles.previewTickRead
-                            : styles.previewTick
-                        }
-                      >
-                        {tickFor(item.lastStatus).glyph}
-                      </Text>
+                      <Tick status={item.lastStatus} />
                     ) : null}
-                    {item.lastBody}
-                  </Text>
+                    <Text style={styles.preview} numberOfLines={1}>
+                      {item.lastBody}
+                    </Text>
+                  </View>
                   {item.unread > 0 ? (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{item.unread}</Text>
@@ -128,7 +139,7 @@ export function ChatsListScreen() {
         activeOpacity={0.85}
         onPress={() => navigation.navigate('NewChat')}
       >
-        <Text style={styles.fabText}>＋</Text>
+        <Ionicons name="add" size={30} color={colors.white} />
       </TouchableOpacity>
     </View>
   );
@@ -168,9 +179,15 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '600', color: colors.text, flex: 1, marginRight: spacing.sm },
   time: { fontSize: 12, color: colors.faint },
   timeUnread: { color: colors.accent, fontWeight: '600' },
-  preview: { fontSize: 14, color: colors.muted, flex: 1, marginRight: spacing.sm, marginTop: 2 },
-  previewTick: { color: colors.tick },
-  previewTickRead: { color: colors.tickRead },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  preview: { fontSize: 14, color: colors.muted, flex: 1 },
+  tickIcon: { marginRight: 3 },
   badge: {
     minWidth: 22,
     height: 22,
@@ -198,5 +215,4 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  fabText: { color: colors.white, fontSize: 30, lineHeight: 32 },
 });
