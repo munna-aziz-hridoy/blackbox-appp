@@ -6,24 +6,24 @@ import Constants from 'expo-constants';
 // dev and it auto-uses your computer's IP from Metro — works on real devices.
 //   Production example: 'https://blackbox-server-d557.onrender.com'
 // ──────────────────────────────────────────────────────────────────────────
-const OVERRIDE = '';
+const OVERRIDE = 'http://47.131.250.110';
 
 const PORT = 5000;
 
 // The machine running Metro = your dev computer. `localhost` would mean the
 // phone itself, so we use Metro's host IP instead.
 function devServerFromMetro(): string | null {
-  const hostUri =
-    Constants.expoConfig?.hostUri ??
-    (Constants.expoGoConfig as { debuggerHost?: string } | undefined)
-      ?.debuggerHost;
-  if (!hostUri) return null;
-  const host = hostUri.split(':')[0];
-  return host ? `http://${host}:${PORT}` : null;
+    const hostUri =
+        Constants.expoConfig?.hostUri ??
+        (Constants.expoGoConfig as { debuggerHost?: string } | undefined)
+            ?.debuggerHost;
+    if (!hostUri) return null;
+    const host = hostUri.split(':')[0];
+    return host ? `http://${host}:${PORT}` : null;
 }
 
 export const SERVER_URL =
-  OVERRIDE ||
-  process.env.EXPO_PUBLIC_SERVER_URL ||
-  devServerFromMetro() ||
-  `http://localhost:${PORT}`;
+    OVERRIDE ||
+    process.env.EXPO_PUBLIC_SERVER_URL ||
+    devServerFromMetro() ||
+    `http://localhost:${PORT}`;
