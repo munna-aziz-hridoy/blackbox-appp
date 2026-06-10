@@ -95,7 +95,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="auto" />
+      <StatusBar style={identity ? 'light' : 'dark'} />
       {identity ? (
         <MessagingProvider identity={identity} onLogout={logout}>
           <CallProvider>

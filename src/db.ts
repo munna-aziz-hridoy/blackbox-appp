@@ -2,10 +2,13 @@ import * as SQLite from 'expo-sqlite';
 
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read';
 
+export type MessageType = 'text' | 'image';
+
 export type Message = {
   id: string;
   peerId: string;
   direction: 'in' | 'out';
+  type: MessageType;
   body: string;
   status: MessageStatus;
   createdAt: number;
@@ -27,6 +30,7 @@ export async function initDb() {
       id TEXT PRIMARY KEY,
       peerId TEXT NOT NULL,
       direction TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'text',
       body TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'delivered',
       createdAt INTEGER NOT NULL
@@ -60,6 +64,11 @@ export async function initDb() {
   if (!messageColumns.some((column) => column.name === 'status')) {
     await db.execAsync(
       "ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT 'delivered'",
+    );
+  }
+  if (!messageColumns.some((column) => column.name === 'type')) {
+    await db.execAsync(
+      "ALTER TABLE messages ADD COLUMN type TEXT NOT NULL DEFAULT 'text'",
     );
   }
 
@@ -126,10 +135,11 @@ export async function loadContacts(): Promise<Contact[]> {
 export async function saveMessage(message: Message): Promise<boolean> {
   const db = await dbPromise;
   const result = await db.runAsync(
-    'INSERT OR IGNORE INTO messages (id, peerId, direction, body, status, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO messages (id, peerId, direction, type, body, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
     message.id,
     message.peerId,
     message.direction,
+    message.type,
     message.body,
     message.status,
     message.createdAt,
@@ -189,6 +199,7 @@ export type Conversation = {
   email: string | null;
   name: string | null;
   lastBody: string;
+  lastType: MessageType;
   lastDirection: 'in' | 'out';
   lastStatus: MessageStatus;
   lastMessageAt: number;
@@ -203,6 +214,7 @@ export async function loadConversations(): Promise<Conversation[]> {
       c.email AS email,
       c.name AS name,
       last.body AS lastBody,
+      last.type AS lastType,
       last.direction AS lastDirection,
       last.status AS lastStatus,
       MAX(m.createdAt) AS lastMessageAt,

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { NativeModules } from 'react-native';
 import { useMessaging, CallSignal } from '../messaging/MessagingContext';
 import { getTurnCredentials, IceServer } from '../api';
 import { encrypt, decrypt } from '../crypto';
@@ -45,7 +46,10 @@ function loadWebrtc() {
   return require('react-native-webrtc');
 }
 function loadInCallManager(): any {
+  // Only use it if its native module is actually registered in this build.
+  // (It may be missing if the dev build predates it or isn't New-Arch-compatible.)
   try {
+    if (!NativeModules.InCallManager) return null;
     return require('react-native-incall-manager').default;
   } catch {
     return null;

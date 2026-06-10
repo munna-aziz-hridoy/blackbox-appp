@@ -31,6 +31,7 @@ type Messaging = {
   version: number;
   refresh: () => void;
   sendMessage: (peerId: string, body: string) => Promise<void>;
+  sendImage: (peerId: string, dataUri: string) => Promise<void>;
   markConversationRead: (peerId: string) => Promise<void>;
   requestProfile: (userId: string) => void;
   sendCallSignal: (
@@ -58,19 +59,34 @@ function makeId() {
 
 // What actually travels inside the end-to-end-encrypted box. The server only
 // ever sees ciphertext — the sender's name/email never reach it.
-type Payload = { v: 1; body: string; name: string | null; email: string | null };
-
-function decodePayload(text: string | null): {
+type Payload = {
+  v: 1;
+  type?: 'text' | 'image';
   body: string;
+  image?: string; // base64 (no data: prefix) when type === 'image'
   name: string | null;
   email: string | null;
-} {
-  if (!text) return { body: '[unable to decrypt]', name: null, email: null };
+};
+
+type Decoded = {
+  type: 'text' | 'image';
+  body: string;
+  image?: string;
+  name: string | null;
+  email: string | null;
+};
+
+function decodePayload(text: string | null): Decoded {
+  if (!text) {
+    return { type: 'text', body: '[unable to decrypt]', name: null, email: null };
+  }
   try {
     const parsed = JSON.parse(text) as Partial<Payload>;
-    if (parsed && typeof parsed.body === 'string') {
+    if (parsed && (typeof parsed.body === 'string' || parsed.type === 'image')) {
       return {
-        body: parsed.body,
+        type: parsed.type === 'image' ? 'image' : 'text',
+        body: parsed.body ?? '',
+        image: parsed.image,
         name: parsed.name ?? null,
         email: parsed.email ?? null,
       };
@@ -78,7 +94,7 @@ function decodePayload(text: string | null): {
   } catch {
     // Not a JSON payload — treat the decrypted text as a plain body.
   }
-  return { body: text, name: null, email: null };
+  return { type: 'text', body: text, name: null, email: null };
 }
 
 export function MessagingProvider({
@@ -117,12 +133,24 @@ export function MessagingProvider({
 
   const sendEnvelope = useCallback(
     (message: Message, publicKey: string, profile: MyProfile) => {
-      const payload: Payload = {
-        v: 1,
-        body: message.body,
-        name: profile.name,
-        email: profile.email,
-      };
+      const payload: Payload =
+        message.type === 'image'
+          ? {
+              v: 1,
+              type: 'image',
+              body: '',
+              image: message.body.includes(',')
+                ? message.body.split(',')[1]
+                : message.body,
+              name: profile.name,
+              email: profile.email,
+            }
+          : {
+              v: 1,
+              body: message.body,
+              name: profile.name,
+              email: profile.email,
+            };
       const sealed = encrypt(
         JSON.stringify(payload),
         publicKey,
@@ -162,7 +190,29 @@ export function MessagingProvider({
         id: makeId(),
         peerId,
         direction: 'out',
+        type: 'text',
         body,
+        status: 'pending',
+        createdAt: Date.now(),
+      };
+      await saveMessage(message);
+      bump();
+      sendEnvelope(message, contact.publicKey, profile);
+    },
+    [sendEnvelope, bump],
+  );
+
+  const sendImage = useCallback(
+    async (peerId: string, dataUri: string) => {
+      const contact = await getContact(peerId);
+      if (!contact) return;
+      const profile = await getMyProfile();
+      const message: Message = {
+        id: makeId(),
+        peerId,
+        direction: 'out',
+        type: 'image',
+        body: dataUri,
         status: 'pending',
         createdAt: Date.now(),
       };
@@ -208,18 +258,22 @@ export function MessagingProvider({
           incoming.fromPublicKey,
           identity.secretKey,
         );
-        const { body, name, email } = decodePayload(text);
+        const decoded = decodePayload(text);
         await saveContact({
           userId: incoming.from,
-          email,
-          name,
+          email: decoded.email,
+          name: decoded.name,
           publicKey: incoming.fromPublicKey,
         });
+        const isImage = decoded.type === 'image' && !!decoded.image;
         const inserted = await saveMessage({
           id: incoming.id,
           peerId: incoming.from,
           direction: 'in',
-          body,
+          type: isImage ? 'image' : 'text',
+          body: isImage
+            ? `data:image/jpeg;base64,${decoded.image}`
+            : decoded.body,
           status: 'delivered',
           createdAt: Date.now(),
         });
@@ -297,6 +351,7 @@ export function MessagingProvider({
         version,
         refresh: bump,
         sendMessage,
+        sendImage,
         markConversationRead,
         requestProfile,
         sendCallSignal,

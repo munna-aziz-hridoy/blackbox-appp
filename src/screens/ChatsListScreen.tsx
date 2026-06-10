@@ -118,8 +118,16 @@ export function ChatsListScreen() {
                     {item.lastDirection === 'out' ? (
                       <Tick status={item.lastStatus} />
                     ) : null}
+                    {item.lastType === 'image' ? (
+                      <Ionicons
+                        name="image-outline"
+                        size={14}
+                        color={colors.muted}
+                        style={styles.tickIcon}
+                      />
+                    ) : null}
                     <Text style={styles.preview} numberOfLines={1}>
-                      {item.lastBody}
+                      {item.lastType === 'image' ? 'Photo' : item.lastBody}
                     </Text>
                   </View>
                   {item.unread > 0 ? (

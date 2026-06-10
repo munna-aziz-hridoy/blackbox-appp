@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
+  Alert,
   FlatList,
+  Image,
   Keyboard,
   Platform,
   StyleSheet,
@@ -9,6 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,7 +50,7 @@ function clockTime(ms: number): string {
 export function ChatScreen() {
   const navigation = useNavigation();
   const { params } = useRoute<RouteProp<AppStackParamList, "Chat">>();
-  const { version, sendMessage, markConversationRead, requestProfile } =
+  const { version, sendMessage, sendImage, markConversationRead, requestProfile } =
     useMessaging();
   const { startCall } = useCall();
   const insets = useSafeAreaInsets();
@@ -131,6 +135,26 @@ export function ChatScreen() {
     await sendMessage(params.peerId, text);
   }
 
+  async function pickImage() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow photo access to send images.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+    });
+    if (result.canceled) return;
+    const compressed = await ImageManipulator.manipulateAsync(
+      result.assets[0].uri,
+      [{ resize: { width: 1024 } }],
+      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    if (!compressed.base64) return;
+    await sendImage(params.peerId, `data:image/jpeg;base64,${compressed.base64}`);
+  }
+
   return (
     <View style={[styles.container, { paddingBottom: keyboardHeight }]}>
       {messages.length === 0 ? (
@@ -152,16 +176,20 @@ export function ChatScreen() {
                 item.direction === "out" ? styles.out : styles.in,
               ]}
             >
-              <Text
-                style={[
-                  styles.bubbleText,
-                  item.direction === "out"
-                    ? styles.bubbleTextOut
-                    : styles.bubbleTextIn,
-                ]}
-              >
-                {item.body}
-              </Text>
+              {item.type === "image" ? (
+                <Image source={{ uri: item.body }} style={styles.bubbleImage} />
+              ) : (
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    item.direction === "out"
+                      ? styles.bubbleTextOut
+                      : styles.bubbleTextIn,
+                  ]}
+                >
+                  {item.body}
+                </Text>
+              )}
               <View style={styles.meta}>
                 <Text
                   style={[
@@ -187,6 +215,13 @@ export function ChatScreen() {
           },
         ]}
       >
+        <TouchableOpacity
+          style={styles.attach}
+          activeOpacity={0.6}
+          onPress={pickImage}
+        >
+          <Ionicons name="image-outline" size={24} color={colors.muted} />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           placeholder="Message"
@@ -235,6 +270,7 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: 15 },
   bubbleTextOut: { color: colors.white },
   bubbleTextIn: { color: colors.text },
+  bubbleImage: { width: 240, height: 240, borderRadius: 10 },
   meta: {
     flexDirection: "row",
     alignSelf: "flex-end",
@@ -261,6 +297,12 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     fontSize: 15,
     color: colors.text,
+  },
+  attach: {
+    width: 40,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
   },
   send: {
     width: 46,
