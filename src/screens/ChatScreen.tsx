@@ -31,7 +31,12 @@ const TICK_DIM = "rgba(255,255,255,0.6)";
 function Ticks({ status }: { status: Message["status"] }) {
   if (status === "pending") {
     return (
-      <Ionicons name="time-outline" size={13} color={TICK_DIM} style={styles.tick} />
+      <Ionicons
+        name="time-outline"
+        size={13}
+        color={TICK_DIM}
+        style={styles.tick}
+      />
     );
   }
   return (
@@ -117,7 +122,14 @@ export function ChatScreen() {
           </TouchableOpacity>
         ) : null,
     });
-  }, [navigation, params.title, params.peerId, peerEmail, peerPublicKey, startCall]);
+  }, [
+    navigation,
+    params.title,
+    params.peerId,
+    peerEmail,
+    peerPublicKey,
+    startCall,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -163,7 +175,10 @@ export function ChatScreen() {
       { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
     if (!compressed.base64) return;
-    await sendImage(params.peerId, `data:image/jpeg;base64,${compressed.base64}`);
+    await sendImage(
+      params.peerId,
+      `data:image/jpeg;base64,${compressed.base64}`,
+    );
   }
 
   async function pickDocument() {
@@ -276,7 +291,9 @@ export function ChatScreen() {
                 >
                   {clockTime(item.createdAt)}
                 </Text>
-                {item.direction === "out" ? <Ticks status={item.status} /> : null}
+                {item.direction === "out" ? (
+                  <Ticks status={item.status} />
+                ) : null}
               </View>
             </View>
           )}
@@ -392,9 +409,9 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
-    padding: spacing.sm,
+    padding: spacing.xs,
     backgroundColor: "transparent",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   input: {
     flex: 1,

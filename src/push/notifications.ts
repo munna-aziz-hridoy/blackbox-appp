@@ -1,6 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+// Remote push doesn't exist in Expo Go (removed in SDK 53) — only in a dev build.
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // Show banners + play sound even when the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -13,6 +17,8 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPush(): Promise<string | null> {
+  if (isExpoGo) return null;
+
   let { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') {
     status = (await Notifications.requestPermissionsAsync()).status;

@@ -12,6 +12,7 @@ import { useMessaging } from '../messaging/MessagingContext';
 import { getMyProfile, setMyProfile } from '../db';
 import { SERVER_URL } from '../config';
 import { Avatar } from '../components/Avatar';
+import { Watermark } from '../components/Watermark';
 import { displayName } from '../displayName';
 import { colors, radius, spacing } from '../theme';
 
@@ -53,6 +54,7 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.container}>
+      <Watermark />
       <View style={styles.card}>
         <Avatar label={displayName(name, email, identity.identityKey)} size={64} />
         <View style={styles.cardBody}>

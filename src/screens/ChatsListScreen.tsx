@@ -13,6 +13,7 @@ import { AppStackParamList } from '../navigation';
 import { useMessaging } from '../messaging/MessagingContext';
 import { Conversation, loadConversations } from '../db';
 import { Avatar } from '../components/Avatar';
+import { Watermark } from '../components/Watermark';
 import { displayName } from '../displayName';
 import { colors, radius, spacing } from '../theme';
 
@@ -71,6 +72,7 @@ export function ChatsListScreen() {
 
   return (
     <View style={styles.container}>
+      <Watermark />
       {!connected ? (
         <Text style={styles.connecting}>connecting…</Text>
       ) : null}

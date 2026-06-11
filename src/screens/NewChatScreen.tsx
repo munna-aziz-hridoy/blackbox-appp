@@ -15,6 +15,7 @@ import { useMessaging } from '../messaging/MessagingContext';
 import { SearchResult, searchUser } from '../api';
 import { Contact, loadContacts, saveContact } from '../db';
 import { Avatar } from '../components/Avatar';
+import { Watermark } from '../components/Watermark';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { displayName } from '../displayName';
 import { colors, radius, spacing } from '../theme';
@@ -76,6 +77,7 @@ export function NewChatScreen() {
 
   return (
     <View style={styles.container}>
+      <Watermark />
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
