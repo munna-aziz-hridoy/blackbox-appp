@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read';
 
-export type MessageType = 'text' | 'image';
+export type MessageType = 'text' | 'image' | 'file';
 
 export type Message = {
   id: string;
@@ -10,6 +10,8 @@ export type Message = {
   direction: 'in' | 'out';
   type: MessageType;
   body: string;
+  fileName: string | null;
+  mimeType: string | null;
   status: MessageStatus;
   createdAt: number;
 };
@@ -32,6 +34,8 @@ export async function initDb() {
       direction TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT 'text',
       body TEXT NOT NULL,
+      fileName TEXT,
+      mimeType TEXT,
       status TEXT NOT NULL DEFAULT 'delivered',
       createdAt INTEGER NOT NULL
     );
@@ -70,6 +74,12 @@ export async function initDb() {
     await db.execAsync(
       "ALTER TABLE messages ADD COLUMN type TEXT NOT NULL DEFAULT 'text'",
     );
+  }
+  if (!messageColumns.some((column) => column.name === 'fileName')) {
+    await db.execAsync('ALTER TABLE messages ADD COLUMN fileName TEXT');
+  }
+  if (!messageColumns.some((column) => column.name === 'mimeType')) {
+    await db.execAsync('ALTER TABLE messages ADD COLUMN mimeType TEXT');
   }
 
   const contactColumns = await db.getAllAsync<{ name: string }>(
@@ -135,12 +145,14 @@ export async function loadContacts(): Promise<Contact[]> {
 export async function saveMessage(message: Message): Promise<boolean> {
   const db = await dbPromise;
   const result = await db.runAsync(
-    'INSERT OR IGNORE INTO messages (id, peerId, direction, type, body, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO messages (id, peerId, direction, type, body, fileName, mimeType, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     message.id,
     message.peerId,
     message.direction,
     message.type,
     message.body,
+    message.fileName,
+    message.mimeType,
     message.status,
     message.createdAt,
   );

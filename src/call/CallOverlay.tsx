@@ -15,16 +15,16 @@ function mmss(total: number): string {
 
 function statusLabel(state: string, durationSec: number): string {
   switch (state) {
-    case 'outgoing':
+    case 'calling':
       return 'Calling…';
+    case 'ringing':
+      return 'Ringing…';
     case 'incoming':
       return 'Incoming call';
     case 'connecting':
       return 'Connecting…';
     case 'connected':
       return mmss(durationSec);
-    case 'unavailable':
-      return 'Unavailable';
     case 'ended':
       return 'Call ended';
     default:

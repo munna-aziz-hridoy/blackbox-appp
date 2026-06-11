@@ -16,11 +16,11 @@ import { displayName } from '../displayName';
 
 export type CallState =
   | 'idle'
-  | 'outgoing'
+  | 'calling' // dialing; recipient offline / not yet ringing
+  | 'ringing' // recipient is online and their phone is ringing
   | 'incoming'
   | 'connecting'
   | 'connected'
-  | 'unavailable'
   | 'ended';
 
 export type CallPeer = { userId: string; publicKey: string; name: string };
@@ -150,13 +150,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
         );
       });
 
+      const onConnected = () => {
+        incall.current?.stopRingback?.();
+        incall.current?.stopRingtone?.();
+        setState('connected');
+      };
       pc.addEventListener('connectionstatechange', () => {
         const s = pc.connectionState;
-        if (s === 'connected') {
-          incall.current?.stopRingback?.();
-          incall.current?.stopRingtone?.();
-          setState('connected');
-        } else if (s === 'failed' || s === 'closed' || s === 'disconnected') {
+        if (s === 'connected') onConnected();
+        else if (s === 'failed' || s === 'closed') {
+          if (peerRef.current) end(false, 'ended');
+        }
+      });
+      // connectionState is unreliable on react-native-webrtc; ICE state is the
+      // dependable signal that media actually flows.
+      pc.addEventListener('iceconnectionstatechange', () => {
+        const s = pc.iceConnectionState;
+        if (s === 'connected' || s === 'completed') onConnected();
+        else if (s === 'failed') {
           if (peerRef.current) end(false, 'ended');
         }
       });
@@ -188,7 +199,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       peerRef.current = target;
       roleRef.current = 'caller';
       setPeer(target);
-      setState('outgoing');
+      setState('calling');
       try {
         incall.current?.start?.({ media: 'audio' });
         incall.current?.startRingback?.();
@@ -202,7 +213,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
           target.userId,
           seal('offer', offer, target.publicKey),
           (ack) => {
-            if (!ack?.delivered && peerRef.current) end(false, 'unavailable');
+            // delivered → their phone is ringing; otherwise they're offline
+            // (a push was sent) and we keep "Calling".
+            if (ack?.delivered && peerRef.current) setState('ringing');
           },
         );
       } catch {

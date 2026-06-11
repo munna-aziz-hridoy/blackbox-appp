@@ -13,6 +13,10 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import EmojiPicker from "rn-emoji-keyboard";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,12 +54,19 @@ function clockTime(ms: number): string {
 export function ChatScreen() {
   const navigation = useNavigation();
   const { params } = useRoute<RouteProp<AppStackParamList, "Chat">>();
-  const { version, sendMessage, sendImage, markConversationRead, requestProfile } =
-    useMessaging();
+  const {
+    version,
+    sendMessage,
+    sendImage,
+    sendFile,
+    markConversationRead,
+    requestProfile,
+  } = useMessaging();
   const { startCall } = useCall();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [peerEmail, setPeerEmail] = useState<string | null>(null);
   const [peerPublicKey, setPeerPublicKey] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -155,6 +166,47 @@ export function ChatScreen() {
     await sendImage(params.peerId, `data:image/jpeg;base64,${compressed.base64}`);
   }
 
+  async function pickDocument() {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (asset.size && asset.size > 8 * 1024 * 1024) {
+      Alert.alert("File too large", "Files must be under 8 MB.");
+      return;
+    }
+    const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const mime = asset.mimeType ?? "application/octet-stream";
+    await sendFile(
+      params.peerId,
+      `data:${mime};base64,${base64}`,
+      asset.name,
+      mime,
+    );
+  }
+
+  async function openFile(message: Message) {
+    try {
+      const base64 = message.body.includes(",")
+        ? message.body.split(",")[1]
+        : message.body;
+      const uri = `${FileSystem.cacheDirectory}${message.fileName ?? "file"}`;
+      await FileSystem.writeAsStringAsync(uri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: message.mimeType ?? undefined,
+        });
+      }
+    } catch {
+      Alert.alert("Could not open file");
+    }
+  }
+
   return (
     <View style={[styles.container, { paddingBottom: keyboardHeight }]}>
       {messages.length === 0 ? (
@@ -178,6 +230,31 @@ export function ChatScreen() {
             >
               {item.type === "image" ? (
                 <Image source={{ uri: item.body }} style={styles.bubbleImage} />
+              ) : item.type === "file" ? (
+                <TouchableOpacity
+                  style={styles.fileRow}
+                  activeOpacity={0.7}
+                  onPress={() => openFile(item)}
+                >
+                  <Ionicons
+                    name="document-outline"
+                    size={26}
+                    color={
+                      item.direction === "out" ? colors.white : colors.text
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.fileName,
+                      item.direction === "out"
+                        ? styles.bubbleTextOut
+                        : styles.bubbleTextIn,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.fileName ?? "file"}
+                  </Text>
+                </TouchableOpacity>
               ) : (
                 <Text
                   style={[
@@ -218,6 +295,23 @@ export function ChatScreen() {
         <TouchableOpacity
           style={styles.attach}
           activeOpacity={0.6}
+          onPress={() => {
+            Keyboard.dismiss();
+            setEmojiOpen(true);
+          }}
+        >
+          <Ionicons name="happy-outline" size={24} color={colors.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.attach}
+          activeOpacity={0.6}
+          onPress={pickDocument}
+        >
+          <Ionicons name="attach" size={24} color={colors.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.attach}
+          activeOpacity={0.6}
           onPress={pickImage}
         >
           <Ionicons name="image-outline" size={24} color={colors.muted} />
@@ -238,6 +332,12 @@ export function ChatScreen() {
           <Ionicons name="send" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
+
+      <EmojiPicker
+        open={emojiOpen}
+        onClose={() => setEmojiOpen(false)}
+        onEmojiSelected={(e) => setBody((b) => b + e.emoji)}
+      />
     </View>
   );
 }
@@ -271,6 +371,14 @@ const styles = StyleSheet.create({
   bubbleTextOut: { color: colors.white },
   bubbleTextIn: { color: colors.text },
   bubbleImage: { width: 240, height: 240, borderRadius: 10 },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: 240,
+    paddingVertical: 2,
+  },
+  fileName: { fontSize: 14, flexShrink: 1 },
   meta: {
     flexDirection: "row",
     alignSelf: "flex-end",
@@ -299,7 +407,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   attach: {
-    width: 40,
+    width: 34,
     height: 46,
     alignItems: "center",
     justifyContent: "center",

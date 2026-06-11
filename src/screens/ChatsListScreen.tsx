@@ -125,9 +125,20 @@ export function ChatsListScreen() {
                         color={colors.muted}
                         style={styles.tickIcon}
                       />
+                    ) : item.lastType === 'file' ? (
+                      <Ionicons
+                        name="document-outline"
+                        size={14}
+                        color={colors.muted}
+                        style={styles.tickIcon}
+                      />
                     ) : null}
                     <Text style={styles.preview} numberOfLines={1}>
-                      {item.lastType === 'image' ? 'Photo' : item.lastBody}
+                      {item.lastType === 'image'
+                        ? 'Photo'
+                        : item.lastType === 'file'
+                          ? 'File'
+                          : item.lastBody}
                     </Text>
                   </View>
                   {item.unread > 0 ? (

@@ -44,6 +44,20 @@ export type SearchResult = {
   online: boolean;
 };
 
+export async function registerPushToken(
+  token: string,
+  identityKey: string,
+): Promise<void> {
+  await fetch(`${SERVER_URL}/push-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${identityKey}`,
+    },
+    body: JSON.stringify({ token }),
+  }).catch(() => {});
+}
+
 export type IceServer = {
   urls: string | string[];
   username?: string;

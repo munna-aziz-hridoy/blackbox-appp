@@ -11,6 +11,8 @@ import { Socket } from 'socket.io-client';
 import { connect } from '../socket';
 import { decrypt, encrypt } from '../crypto';
 import { Identity } from '../identity';
+import { registerPushToken } from '../api';
+import { registerForPush } from '../push/notifications';
 import {
   getContact,
   getMyProfile,
@@ -32,6 +34,12 @@ type Messaging = {
   refresh: () => void;
   sendMessage: (peerId: string, body: string) => Promise<void>;
   sendImage: (peerId: string, dataUri: string) => Promise<void>;
+  sendFile: (
+    peerId: string,
+    dataUri: string,
+    fileName: string,
+    mimeType: string,
+  ) => Promise<void>;
   markConversationRead: (peerId: string) => Promise<void>;
   requestProfile: (userId: string) => void;
   sendCallSignal: (
@@ -61,17 +69,21 @@ function makeId() {
 // ever sees ciphertext — the sender's name/email never reach it.
 type Payload = {
   v: 1;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'file';
   body: string;
-  image?: string; // base64 (no data: prefix) when type === 'image'
+  media?: string; // base64 (no data: prefix) for image/file
+  fileName?: string;
+  mime?: string;
   name: string | null;
   email: string | null;
 };
 
 type Decoded = {
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'file';
   body: string;
-  image?: string;
+  media?: string;
+  fileName?: string;
+  mime?: string;
   name: string | null;
   email: string | null;
 };
@@ -82,11 +94,14 @@ function decodePayload(text: string | null): Decoded {
   }
   try {
     const parsed = JSON.parse(text) as Partial<Payload>;
-    if (parsed && (typeof parsed.body === 'string' || parsed.type === 'image')) {
+    const isMedia = parsed.type === 'image' || parsed.type === 'file';
+    if (parsed && (typeof parsed.body === 'string' || isMedia)) {
       return {
-        type: parsed.type === 'image' ? 'image' : 'text',
+        type: parsed.type ?? 'text',
         body: parsed.body ?? '',
-        image: parsed.image,
+        media: parsed.media,
+        fileName: parsed.fileName,
+        mime: parsed.mime,
         name: parsed.name ?? null,
         email: parsed.email ?? null,
       };
@@ -95,6 +110,11 @@ function decodePayload(text: string | null): Decoded {
     // Not a JSON payload — treat the decrypted text as a plain body.
   }
   return { type: 'text', body: text, name: null, email: null };
+}
+
+// Extract the base64 part of a data: URI stored in message.body.
+function base64Of(dataUri: string): string {
+  return dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
 }
 
 export function MessagingProvider({
@@ -134,14 +154,14 @@ export function MessagingProvider({
   const sendEnvelope = useCallback(
     (message: Message, publicKey: string, profile: MyProfile) => {
       const payload: Payload =
-        message.type === 'image'
+        message.type === 'image' || message.type === 'file'
           ? {
               v: 1,
-              type: 'image',
+              type: message.type,
               body: '',
-              image: message.body.includes(',')
-                ? message.body.split(',')[1]
-                : message.body,
+              media: base64Of(message.body),
+              fileName: message.fileName ?? undefined,
+              mime: message.mimeType ?? undefined,
               name: profile.name,
               email: profile.email,
             }
@@ -192,6 +212,8 @@ export function MessagingProvider({
         direction: 'out',
         type: 'text',
         body,
+        fileName: null,
+        mimeType: null,
         status: 'pending',
         createdAt: Date.now(),
       };
@@ -213,6 +235,36 @@ export function MessagingProvider({
         direction: 'out',
         type: 'image',
         body: dataUri,
+        fileName: null,
+        mimeType: null,
+        status: 'pending',
+        createdAt: Date.now(),
+      };
+      await saveMessage(message);
+      bump();
+      sendEnvelope(message, contact.publicKey, profile);
+    },
+    [sendEnvelope, bump],
+  );
+
+  const sendFile = useCallback(
+    async (
+      peerId: string,
+      dataUri: string,
+      fileName: string,
+      mimeType: string,
+    ) => {
+      const contact = await getContact(peerId);
+      if (!contact) return;
+      const profile = await getMyProfile();
+      const message: Message = {
+        id: makeId(),
+        peerId,
+        direction: 'out',
+        type: 'file',
+        body: dataUri,
+        fileName,
+        mimeType,
         status: 'pending',
         createdAt: Date.now(),
       };
@@ -265,15 +317,20 @@ export function MessagingProvider({
           name: decoded.name,
           publicKey: incoming.fromPublicKey,
         });
-        const isImage = decoded.type === 'image' && !!decoded.image;
+        const isImage = decoded.type === 'image' && !!decoded.media;
+        const isFile = decoded.type === 'file' && !!decoded.media;
         const inserted = await saveMessage({
           id: incoming.id,
           peerId: incoming.from,
           direction: 'in',
-          type: isImage ? 'image' : 'text',
+          type: isImage ? 'image' : isFile ? 'file' : 'text',
           body: isImage
-            ? `data:image/jpeg;base64,${decoded.image}`
-            : decoded.body,
+            ? `data:image/jpeg;base64,${decoded.media}`
+            : isFile
+              ? `data:${decoded.mime ?? 'application/octet-stream'};base64,${decoded.media}`
+              : decoded.body,
+          fileName: isFile ? (decoded.fileName ?? 'file') : null,
+          mimeType: isFile ? (decoded.mime ?? null) : null,
           status: 'delivered',
           createdAt: Date.now(),
         });
@@ -343,6 +400,12 @@ export function MessagingProvider({
     };
   }, [identity.identityKey, identity.secretKey, retryUndelivered, bump]);
 
+  useEffect(() => {
+    registerForPush().then((token) => {
+      if (token) registerPushToken(token, identity.identityKey);
+    });
+  }, [identity.identityKey]);
+
   return (
     <MessagingContext.Provider
       value={{
@@ -352,6 +415,7 @@ export function MessagingProvider({
         refresh: bump,
         sendMessage,
         sendImage,
+        sendFile,
         markConversationRead,
         requestProfile,
         sendCallSignal,
