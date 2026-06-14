@@ -7,8 +7,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { NativeModules } from 'react-native';
+import { AppState, NativeModules } from 'react-native';
 import { useMessaging, CallSignal } from '../messaging/MessagingContext';
+import { showLocalNotification } from '../push/notifications';
 import { getTurnCredentials, IceServer } from '../api';
 import { encrypt, decrypt } from '../crypto';
 import { getContact } from '../db';
@@ -131,11 +132,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const createPeer = useCallback(
     async (iceServers: IceServer[]) => {
       const { RTCPeerConnection, mediaDevices } = loadWebrtc();
+      console.log('[call] iceServers', JSON.stringify(iceServers));
       const pc = new RTCPeerConnection({ iceServers });
+
+      pc.addEventListener('icegatheringstatechange', () =>
+        console.log('[call] gathering', pc.iceGatheringState),
+      );
+      pc.addEventListener('icecandidateerror', (e: any) =>
+        console.log('[call] candErr', e.errorCode, e.url, e.errorText),
+      );
 
       pc.addEventListener('icecandidate', (event: any) => {
         const target = peerRef.current;
         if (!event.candidate || !target) return;
+        console.log('[call] local cand', event.candidate.candidate);
         sendCallSignal(
           target.userId,
           seal(
@@ -166,6 +176,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // dependable signal that media actually flows.
       pc.addEventListener('iceconnectionstatechange', () => {
         const s = pc.iceConnectionState;
+        console.log('[call] iceConn', s);
         if (s === 'connected' || s === 'completed') onConnected();
         else if (s === 'failed') {
           if (peerRef.current) end(false, 'ended');
@@ -286,6 +297,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         setPeer(incoming);
         setState('incoming');
         incall.current?.startRingtone?.('_BUNDLE_');
+        if (AppState.currentState !== 'active') {
+          showLocalNotification('Incoming call', incoming.name);
+        }
         return;
       }
 
@@ -305,8 +319,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (pc && pc.remoteDescription) {
           const { RTCIceCandidate } = loadWebrtc();
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('[call] remote cand added');
         } else {
           iceQueueRef.current.push(candidate);
+          console.log('[call] remote cand queued');
         }
       } else if (data.kind === 'end') {
         end(false, 'ended');

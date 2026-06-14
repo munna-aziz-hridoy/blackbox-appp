@@ -16,6 +16,21 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// A local (on-device) notification — works without FCM, while the app is alive.
+export async function showLocalNotification(
+  title: string,
+  body: string,
+): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: 'default' },
+      trigger: null,
+    });
+  } catch {
+    // ignore (e.g. permissions not granted)
+  }
+}
+
 export async function registerForPush(): Promise<string | null> {
   if (isExpoGo) return null;
 
@@ -40,8 +55,10 @@ export async function registerForPush(): Promise<string | null> {
 
   try {
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    console.log('[push] expo token', token.data);
     return token.data;
-  } catch {
+  } catch (e) {
+    console.log('[push] token error', (e as Error).message);
     return null;
   }
 }

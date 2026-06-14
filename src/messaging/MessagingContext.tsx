@@ -11,8 +11,10 @@ import { Socket } from 'socket.io-client';
 import { connect } from '../socket';
 import { decrypt, encrypt } from '../crypto';
 import { Identity } from '../identity';
+import { AppState } from 'react-native';
 import { registerPushToken } from '../api';
-import { registerForPush } from '../push/notifications';
+import { registerForPush, showLocalNotification } from '../push/notifications';
+import { displayName } from '../displayName';
 import {
   getContact,
   getMyProfile,
@@ -42,6 +44,7 @@ type Messaging = {
   ) => Promise<void>;
   markConversationRead: (peerId: string) => Promise<void>;
   requestProfile: (userId: string) => void;
+  setActiveChat: (peerId: string | null) => void;
   sendCallSignal: (
     to: string,
     payload: Record<string, unknown>,
@@ -130,6 +133,11 @@ export function MessagingProvider({
   const [version, setVersion] = useState(0);
   const socketRef = useRef<Socket | null>(null);
   const callHandlers = useRef(new Set<(data: CallSignal) => void>());
+  const activeChatRef = useRef<string | null>(null);
+
+  const setActiveChat = useCallback((peerId: string | null) => {
+    activeChatRef.current = peerId;
+  }, []);
 
   const bump = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -334,7 +342,19 @@ export function MessagingProvider({
           status: 'delivered',
           createdAt: Date.now(),
         });
-        if (inserted) bump();
+        if (inserted) {
+          bump();
+          const inOpenChat =
+            AppState.currentState === 'active' &&
+            activeChatRef.current === incoming.from;
+          if (!inOpenChat) {
+            const preview = isImage ? '📷 Photo' : isFile ? '📎 File' : decoded.body;
+            showLocalNotification(
+              displayName(decoded.name, decoded.email, incoming.from),
+              preview,
+            );
+          }
+        }
       },
     );
 
@@ -418,6 +438,7 @@ export function MessagingProvider({
         sendFile,
         markConversationRead,
         requestProfile,
+        setActiveChat,
         sendCallSignal,
         onCallSignal,
         logout: onLogout,

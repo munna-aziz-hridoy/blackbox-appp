@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -17,7 +17,12 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import EmojiPicker from "rn-emoji-keyboard";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppStackParamList } from "../navigation";
@@ -66,6 +71,7 @@ export function ChatScreen() {
     sendFile,
     markConversationRead,
     requestProfile,
+    setActiveChat,
   } = useMessaging();
   const { startCall } = useCall();
   const insets = useSafeAreaInsets();
@@ -150,6 +156,14 @@ export function ChatScreen() {
   useEffect(() => {
     requestProfile(params.peerId);
   }, [params.peerId, requestProfile]);
+
+  // Don't notify for the chat you're currently looking at.
+  useFocusEffect(
+    useCallback(() => {
+      setActiveChat(params.peerId);
+      return () => setActiveChat(null);
+    }, [params.peerId, setActiveChat]),
+  );
 
   async function handleSend() {
     const text = body.trim();
